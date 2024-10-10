@@ -1,0 +1,25 @@
+poudriere_task:
+  env:
+    GITHUB_TOKEN: ENCRYPTED[63b8c4367968690f7393ab39aadf4496c346328c184735126b7f7f3150084a5263b7fc2747360aab6ab3e51135af6eb5]
+
+  freebsd_instance:
+    image_family: freebsd-15-0-snap
+
+  install_dependencies_script:
+    - pkg install -y git poudriere-devel podman-suite
+
+  xxx_patch_poudriere_script:
+    - fetch -o /usr/local/share/poudriere/image.sh https://raw.githubusercontent.com/jlduran/poudriere/oci/src/share/poudriere/image.sh
+    - fetch -o /usr/local/share/poudriere/image_oci.sh https://raw.githubusercontent.com/jlduran/poudriere/oci/src/share/poudriere/image_oci.sh
+    - fetch -o /usr/local/share/poudriere/jail.sh https://raw.githubusercontent.com/jlduran/poudriere/oci/src/share/poudriere/jail.sh
+
+  create_poudriere_jail_script:
+    - poudriere jail -c -j freebsd15 -K GENERIC -v 15.0-CURRENT
+
+  create_oci_image_script:
+    - poudriere image -t oci -j freebsd15 -n latest
+
+  upload_to_ghcr_io_script:
+    - podman tag localhost/freebsd15-minimal:latest ghcr.io/jlduran/freebsd15-minimal:latest
+    - podman login --username jlduran --password-stdin < echo "$GITHUB_TOKEN"
+    - podman push ghcr.io/jlduran/freebsd15-minimal:latest
